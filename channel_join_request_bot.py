@@ -7,7 +7,7 @@ from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, ContextType
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import Forbidden, RetryAfter, TelegramError
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+BOT_TOKEN = os.environ.get("8331279978:AAHn_RSnCykYmFrWibkTvvb4tizgKt1Ywjk")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

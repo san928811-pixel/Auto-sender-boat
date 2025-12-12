@@ -32,7 +32,7 @@ from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, ContextType
 
 # BOT TOKEN: recommended to set as environment variable BOT_TOKEN.
 # For Heroku: set Config Var BOT_TOKEN = your-token
-BOT_TOKEN: str = os.environ.get("BOT_TOKEN") or "PUT_YOUR_TOKEN_HERE"
+BOT_TOKEN: str = os.environ.get("BOT_TOKEN") or "8331279978:AAHn_RSnCykYmFrWibkTvvb4tizgKt1Ywjk"
 # If you want me to literally fill token here, replace the above string with your token,
 # but DO NOT commit the token to a public repo.
 
@@ -159,7 +159,7 @@ async def handle_join_request(update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------------- Main ----------------
 def main():
-    if BOT_TOKEN == "8331279978:AAHn_RSnCykYmFrWibkTvvb4tizgKt1Ywjk" or not BOT_TOKEN:
+    if BOT_TOKEN == "PUT_YOUR_TOKEN_HERE" or not BOT_TOKEN:
         logger.error("BOT_TOKEN not set! Set environment variable BOT_TOKEN or edit this file.")
         raise SystemExit("BOT_TOKEN not set. Edit file or set env var BOT_TOKEN.")
 

@@ -14,7 +14,7 @@ import asyncio
 # ---------------- BOT TOKEN ----------------
 # Do NOT put token in code. In Heroku → Settings → Config Vars:
 # BOT_TOKEN = your_real_token_here
-BOT_TOKEN = os.environ.get("8331279978:AAHn_RSnCykYmFrWibkTvvb4tizgKt1Ywjk")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise SystemExit("ERROR: BOT_TOKEN not set! Add it in Heroku Config Vars.")
 

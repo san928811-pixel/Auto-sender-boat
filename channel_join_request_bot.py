@@ -13,7 +13,7 @@ import asyncio
 
 # ---------------- BOT TOKEN ----------------
 # Do NOT put token in code. In Heroku → Settings → Config Vars:
-# BOT_TOKEN = your_real_token_here
+# BOT_TOKEN = os.environ.get("BOT_TOKEN")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise SystemExit("ERROR: BOT_TOKEN not set! Add it in Heroku Config Vars.")
@@ -24,14 +24,14 @@ WELCOME_TEMPLATE = (
     "Thanks for requesting to join @{chat_username}.\n\n"
     "Here are some useful resources:\n\n"
 
-    "⭐ Open Video Collection\n"
-    "https://t.me/+S-u7h8g2rxE5MTQ0"
-
     "⭐ Instagram Viral Hub\n"
-    "https://t.me/+CPwLrzowd0wxYTA8"
+    "https://t.me/+CPwLrzowd0wxYTA8\n\n"
+
+    "⭐ Open Video Collection\n"
+    "https://t.me/+S-u7h8g2rxE5MTQ0\n\n"
 
     "⭐ Premium Video\n"
-    "👉 Yahan apna link daal do\n"
+    "https://t.me/ruhi_roy_01?text=primium_membership_collection🥵\n"
 )
 
 # ---------------- SQLITE ANTI-SPAM DB ----------------

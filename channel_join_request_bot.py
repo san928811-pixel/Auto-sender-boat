@@ -1,177 +1,121 @@
 #!/usr/bin/env python3
-"""
-Channel join-request bot (python-telegram-bot v20+)
-
-Behavior:
-- Listens for ChatJoinRequest updates (works when bot is admin of a CHANNEL).
-- Leaves the request PENDING (does NOT approve/decline).
-- Attempts to send a private welcome message to requester with 3 inline links.
-- Uses a small sqlite DB to avoid messaging same user more than once per day.
-
-HOW TO USE:
-- Replace the three LINK_* values below with your real URLs (or set them later).
-- Set BOT_TOKEN either by:
-    - Exporting environment variable BOT_TOKEN (recommended, e.g. Heroku Config Vars)
-    - OR directly replace the string 'PUT_YOUR_TOKEN_HERE' below (not recommended to commit).
-- Add the bot as admin to your CHANNEL (allow it to see join requests).
-- Run: python channel_join_request_bot.py
-"""
+# ---------------- Channel Join-Request Bot ----------------
+# Sends a forwardable text message with Name + Link below it.
 
 import os
 import sqlite3
 import logging
-import asyncio
-from datetime import datetime, timedelta
-from typing import Optional
-
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ChatJoinRequest
-from telegram.error import Forbidden, RetryAfter, TelegramError
+from datetime import datetime
+from telegram import ChatJoinRequest
 from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, ContextTypes
+from telegram.error import Forbidden, RetryAfter, TelegramError
+import asyncio
 
-# ---------------- CONFIG ----------------
+# ---------------- BOT TOKEN ----------------
+# Do NOT put token in code. In Heroku → Settings → Config Vars:
+# BOT_TOKEN = your_real_token_here
+BOT_TOKEN = os.environ.get("8331279978:AAHn_RSnCykYmFrWibkTvvb4tizgKt1Ywjk")
+if not BOT_TOKEN:
+    raise SystemExit("ERROR: BOT_TOKEN not set! Add it in Heroku Config Vars.")
 
-# BOT TOKEN: recommended to set as environment variable BOT_TOKEN.
-# For Heroku: set Config Var BOT_TOKEN = your-token
-BOT_TOKEN: str = os.environ.get("BOT_TOKEN") or "8331279978:AAHn_RSnCykYmFrWibkTvvb4tizgKt1Ywjk"
-# If you want me to literally fill token here, replace the above string with your token,
-# but DO NOT commit the token to a public repo.
-
-# Welcome message (can customize)
+# ---------------- FORWARDABLE WELCOME MESSAGE ----------------
 WELCOME_TEMPLATE = (
-    "Hello {first_name} 👋\n\n"
+    "Hello {first_name} 👋\n"
     "Thanks for requesting to join @{chat_username}.\n\n"
-    "Before approval, please check these resources:"
+    "Here are some useful resources:\n\n"
+
+    "⭐ Open Video Collection\n"
+    "https://t.me/+IbayxnB5o41mZDE0\n\n"
+
+    "⭐ Instagram Viral Hub\n"
+    "https://t.me/+z2ecSXHAXABkYTk8\n\n"
+
+    "⭐ Premium Video\n"
+    "👉 Yahan apna link daal do\n"
 )
 
-# Replace these URLs with your actual links.
-# The labels requested:
-#  - Open Video Collection
-#  - Instagram Viral Hub
-#  - Premium Video
-LINKS = [
-    ("Open Video Collection", "https://example.com/open-video"),     # <-- replace
-    ("Instagram Viral Hub", "https://example.com/instagram-hub"),    # <-- replace
-    ("Premium Video", "https://example.com/premium-video"),          # <-- replace
-]
-
-# Rate-limit: minimum seconds between welcome messages to same user (default 24 hours)
-MIN_SECONDS_BETWEEN_MESSAGES = 24 * 3600
+# ---------------- SQLITE ANTI-SPAM DB ----------------
 DB_PATH = "joinreq_bot.sqlite"
+MIN_SECONDS_BETWEEN = 24 * 3600  # 24 hours
 
-# Logging
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-# ---------------- DB helpers ----------------
-def init_db(path: str = DB_PATH):
-    conn = sqlite3.connect(path)
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS messaged_users (
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS sent_users (
             user_id INTEGER PRIMARY KEY,
-            last_sent_ts INTEGER
+            last_ts INTEGER
         )
-        """
-    )
+    """)
     conn.commit()
     conn.close()
 
-
-def should_send_to_user(user_id: int, min_seconds: int = MIN_SECONDS_BETWEEN_MESSAGES) -> bool:
-    """Return True if we should send a message to this user (based on cooldown)."""
+def should_send(user_id: int) -> bool:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT last_sent_ts FROM messaged_users WHERE user_id = ?", (user_id,))
+    cur.execute("SELECT last_ts FROM sent_users WHERE user_id=?", (user_id,))
     row = cur.fetchone()
-    now_ts = int(datetime.utcnow().timestamp())
+    now = int(datetime.utcnow().timestamp())
+
     if row is None:
-        cur.execute("INSERT INTO messaged_users(user_id, last_sent_ts) VALUES(?, ?)", (user_id, now_ts))
+        cur.execute("INSERT INTO sent_users VALUES (?, ?)", (user_id, now))
         conn.commit()
         conn.close()
         return True
+
     last_ts = row[0]
-    if now_ts - last_ts >= min_seconds:
-        cur.execute("UPDATE messaged_users SET last_sent_ts = ? WHERE user_id = ?", (now_ts, user_id))
+    if now - last_ts >= MIN_SECONDS_BETWEEN:
+        cur.execute("UPDATE sent_users SET last_ts=? WHERE user_id=?", (now, user_id))
         conn.commit()
         conn.close()
         return True
+
     conn.close()
     return False
 
+# ---------------- HANDLER ----------------
+async def join_request_handler(update, context: ContextTypes.DEFAULT_TYPE):
+    req: ChatJoinRequest = update.chat_join_request
+    user = req.from_user
+    chat = req.chat
 
-# ---------------- Handler ----------------
-async def handle_join_request(update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Handles ChatJoinRequest:
-    - Keeps request pending (does not approve or decline)
-    - Attempts to DM the requester with the welcome message + links
-    """
-    jreq: Optional[ChatJoinRequest] = update.chat_join_request
-    if not jreq:
+    if not should_send(user.id):
         return
 
-    user = jreq.from_user
-    chat = jreq.chat
-
-    logger.info("Join request from %s (%s) for chat %s (%s)", user.full_name, user.id, chat.title, chat.id)
-
-    # Throttle: avoid messaging same user repeatedly
-    if not should_send_to_user(user.id):
-        logger.info("Skipping DM to %s — sent recently.", user.id)
-        return
-
-    # Build keyboard with provided LINKS
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(text=label, url=url) for (label, url) in LINKS]]
+    msg_text = WELCOME_TEMPLATE.format(
+        first_name=user.first_name,
+        chat_username=chat.username or chat.title
     )
 
-    text = WELCOME_TEMPLATE.format(first_name=user.first_name or user.full_name,
-                                   chat_username=getattr(chat, "username", chat.title))
-
     try:
-        await context.bot.send_message(chat_id=user.id, text=text, reply_markup=keyboard)
-        logger.info("Sent welcome DM to user %s", user.id)
-    except Forbidden as e:
-        # User hasn't started the bot OR blocked it
-        logger.warning("Forbidden: cannot DM user %s — %s", user.id, e)
+        await context.bot.send_message(
+            chat_id=user.id,
+            text=msg_text
+        )
+        logging.info(f"Sent welcome message to {user.id}")
+
+    except Forbidden:
+        logging.warning(f"Cannot send message to {user.id} (Forbidden)")
     except RetryAfter as e:
-        wait = int(e.retry_after) + 1
-        logger.warning("Rate-limited by Telegram. Sleeping %s seconds then retrying once.", wait)
-        await asyncio.sleep(wait)
+        logging.warning(f"Rate limited. Sleeping {e.retry_after}s")
+        await asyncio.sleep(e.retry_after)
         try:
-            await context.bot.send_message(chat_id=user.id, text=text, reply_markup=keyboard)
-            logger.info("Sent welcome DM after retry to user %s", user.id)
+            await context.bot.send_message(chat_id=user.id, text=msg_text)
         except Exception as e2:
-            logger.error("Failed to send DM after retry: %s", e2)
+            logging.error(e2)
     except TelegramError as e:
-        logger.error("TelegramError when messaging user %s: %s", user.id, e)
-    except Exception:
-        logger.exception("Unexpected error when messaging user %s", user.id)
+        logging.error(e)
 
-    # Intentionally DO NOT approve or decline the join request here.
-    # If you want to approve automatically, call:
-    #   await context.bot.approve_chat_join_request(chat_id=chat.id, user_id=user.id)
-    # or to decline:
-    #   await context.bot.decline_chat_join_request(chat_id=chat.id, user_id=user.id)
-
-
-# ---------------- Main ----------------
+# ---------------- MAIN ----------------
 def main():
-    if BOT_TOKEN == "PUT_YOUR_TOKEN_HERE" or not BOT_TOKEN:
-        logger.error("BOT_TOKEN not set! Set environment variable BOT_TOKEN or edit this file.")
-        raise SystemExit("BOT_TOKEN not set. Edit file or set env var BOT_TOKEN.")
-
-    init_db(DB_PATH)
+    logging.basicConfig(level=logging.INFO)
+    init_db()
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(ChatJoinRequestHandler(handle_join_request))
+    app.add_handler(ChatJoinRequestHandler(join_request_handler))
 
-    logger.info("Bot starting (listening for chat_join_request updates)...")
-    # Only request join-request updates
+    logging.info("Bot is running...")
     app.run_polling(allowed_updates=["chat_join_request"])
-
 
 if __name__ == "__main__":
     main()

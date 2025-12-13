@@ -12,8 +12,6 @@ from telegram.error import Forbidden, RetryAfter, TelegramError
 import asyncio
 
 # ---------------- BOT TOKEN ----------------
-# Do NOT put token in code. In Heroku → Settings → Config Vars:
-# BOT_TOKEN = os.environ.get("BOT_TOKEN")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise SystemExit("ERROR: BOT_TOKEN not set! Add it in Heroku Config Vars.")
@@ -25,7 +23,7 @@ WELCOME_TEMPLATE = (
     "Here are some useful resources:\n\n"
 
     "⭐ Instagram Viral Hub\n"
-    "https://t.me/+CPwLrzowd0wxYTA8\n\n"
+    "https://t.me/+6BDthPVQV041NjFk\n\n"
 
     "⭐ Open Video Collection\n"
     "https://t.me/+S-u7h8g2rxE5MTQ0\n\n"

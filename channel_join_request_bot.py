@@ -26,7 +26,7 @@ WELCOME_TEMPLATE = (
     "https://t.me/+RK68lzwKVY01NTFk\n\n"
 
     "⭐ Open Video Collection\n"
-    "https://t.me/+mV7IArPBHYgyYzM0\n\n"
+    "https://t.me/+r8vPqMOseP1kY2Y0\n\n"
 
     "⭐ Premium Video\n"
     "https://t.me/ruhi_roy_01?text=primium_membership_collection🥵\n"

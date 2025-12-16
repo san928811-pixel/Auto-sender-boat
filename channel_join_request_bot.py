@@ -23,7 +23,7 @@ WELCOME_TEMPLATE = (
     "Here are some useful resources:\n\n"
 
     "⭐ Instagram Viral Hub\n"
-    "https://t.me/+RK68lzwKVY01NTFk\n\n"
+    "https://t.me/+_z12fStYCckzZWE0\n\n"
 
     "⭐ Open Video Collection\n"
     "https://t.me/+r8vPqMOseP1kY2Y0\n\n"

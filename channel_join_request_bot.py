@@ -28,8 +28,8 @@ WELCOME_TEMPLATE = (
     "⭐ Open Video Collection\n"
     "https://t.me/+6LuFjPOyAG84ZGI8\n\n"
 
-    "⭐ Premium Video\n"
-    "https://t.me/ruhi_roy_01?text=primium_membership_collection🥵\n"
+    "⭐ Open Collection 5 Minutes\n"
+    "https://t.me/+5zuNlbtUZuEyY2Y8\n"
 )
 
 # ---------------- SQLITE ANTI-SPAM DB ----------------

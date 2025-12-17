@@ -26,7 +26,7 @@ WELCOME_TEMPLATE = (
     "https://t.me/+ScRO2vojeR9hNTg0\n\n"
 
     "⭐ Open Video Collection\n"
-    "https://t.me/+6LuFjPOyAG84ZGI8\n\n"
+    "https://t.me/+T9wSKX9hsxkzNDU0\n\n"
 
     "⭐ Open Collection 5 Minutes\n"
     "https://t.me/+5zuNlbtUZuEyY2Y8\n"

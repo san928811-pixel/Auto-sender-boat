@@ -23,13 +23,13 @@ WELCOME_TEMPLATE = (
     "Here are some useful resources:\n\n"
 
     "⭐ Instagram Viral Hub\n"
-    "https://t.me/+ScRO2vojeR9hNTg0\n\n"
+    "https://t.me/+zmnHXx52iRM1ZmNk\n\n"
 
     "⭐ Open Video Collection\n"
-    "https://t.me/+T9wSKX9hsxkzNDU0\n\n"
+    "https://t.me/+qQnZa92klCk1ZjRk\n\n"
 
     "⭐ Open Collection 5 Minutes\n"
-    "https://t.me/+5zuNlbtUZuEyY2Y8\n"
+    "https://t.me/+RPi0CsxXB7IwNWY0\n\n"
 )
 
 # ---------------- SQLITE ANTI-SPAM DB ----------------

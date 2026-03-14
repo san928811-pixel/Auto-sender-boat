@@ -5,10 +5,11 @@ from threading import Thread
 from flask import Flask
 
 # --- CONFIG ---
-API_ID = 26522774
-API_HASH = "85f95874f63ca52f6f40776f8e752948"
-BOT_TOKEN = "7677051416:AAFTzO_8N7N0wK_759AOnB-S76pM-X5CAsY"
-ADMIN_ID = 7443315904
+API_ID = 34214308
+API_HASH = "1dc1da15588ee6df9178e1211a436d4b"
+BOT_TOKEN = "
+8663869825:AAFFE1QWz5HDUZVQC4qeUCtOqxNaGkXtFqg"
+ADMIN_ID = 8611520265
 
 app_bot = Client("guard_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 app_web = Flask(__name__)

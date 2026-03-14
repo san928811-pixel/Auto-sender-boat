@@ -7,8 +7,7 @@ from flask import Flask
 # --- CONFIG ---
 API_ID = 34214308
 API_HASH = "1dc1da15588ee6df9178e1211a436d4b"
-BOT_TOKEN = "
-8663869825:AAFFE1QWz5HDUZVQC4qeUCtOqxNaGkXtFqg"
+BOT_TOKEN = "8663869825:AAFFE1QWz5HDUZVQC4qeUCtOqxNaGkXtFqg"
 ADMIN_ID = 8611520265
 
 app_bot = Client("guard_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)

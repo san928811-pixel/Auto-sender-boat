@@ -4,92 +4,131 @@ from pyrogram import Client, filters
 from threading import Thread
 from flask import Flask
 
-# --- ENV VARIABLES ---
+# ENV VARIABLES
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+# PYROGRAM CLIENT
 app_bot = Client(
-    "my_bot",
+    "safety_guard_bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
     in_memory=True
 )
 
+# FLASK APP
 app_web = Flask(__name__)
-
-# Banned words list
-BANNED_LIST = ["scam", "crypto", "paisa", "loot", "fake", "hack"]
-BANNED_LOGS = []
 
 @app_web.route('/')
 def home():
-    return "Bot is Online and Guarding!"
+    return "Safety Guard Bot Running!"
 
 def run_flask():
     port = int(os.environ.get("PORT", 8080))
     app_web.run(host="0.0.0.0", port=port)
 
+# DATA
+BANNED_LIST = ["scam", "crypto", "paisa", "loot", "fake", "hack"]
+BANNED_LOGS = []
+TOTAL_BANS = 0
 
-# START COMMAND
-@app_bot.on_message(filters.command("start"))
+# ADMIN CHECK
+async def is_admin(client, message):
+    member = await client.get_chat_member(message.chat.id, message.from_user.id)
+    return member.status in ["administrator", "creator"]
+
+# START
+@app_bot.on_message(filters.private & filters.command("start"))
 async def start(client, message):
+
     text = (
-        "🛡️ **Advanced Name Guard Active!**\n\n"
-        "Main suspicious naam aur username wale users ko auto ban karta hoon.\n\n"
+        "🛡️ **Safety Guard Bot Active**\n\n"
+        "Main group ko scam aur spam se protect karta hoon.\n\n"
         "Commands:\n"
-        "🔹 /add word\n"
-        "🔹 /unblock word\n"
-        "🔹 /list\n"
-        "🔹 /banned"
+        "/add word\n"
+        "/unblock word\n"
+        "/list\n"
+        "/stats\n"
+        "/ping"
     )
+
     await message.reply_text(text)
 
+# PING
+@app_bot.on_message(filters.command("ping"))
+async def ping(client, message):
+    await message.reply_text("✅ Bot Online")
 
 # ADD WORD
 @app_bot.on_message(filters.command("add"))
 async def add_word(client, message):
+
+    if not await is_admin(client, message):
+        return await message.reply_text("❌ Admin only command")
+
     if len(message.command) < 2:
-        return await message.reply_text("❌ Usage: /add word")
+        return await message.reply_text("Usage: /add word")
 
-    target = message.text.split(None, 1)[1].lower()
+    word = message.command[1].lower()
 
-    if target not in BANNED_LIST:
-        BANNED_LIST.append(target)
-        await message.reply_text(f"✅ '{target}' added to block list")
+    if word not in BANNED_LIST:
+        BANNED_LIST.append(word)
 
+    await message.reply_text(f"✅ '{word}' added")
 
-# LIST WORDS
+# LIST
 @app_bot.on_message(filters.command("list"))
 async def list_words(client, message):
+
     words = ", ".join(BANNED_LIST)
+
     await message.reply_text(f"🚫 Blocked words:\n{words}")
 
-
-# UNBLOCK WORD
+# REMOVE WORD
 @app_bot.on_message(filters.command("unblock"))
-async def unblock_word(client, message):
+async def remove_word(client, message):
+
+    if not await is_admin(client, message):
+        return await message.reply_text("❌ Admin only command")
+
     if len(message.command) < 2:
         return
 
-    target = message.text.split(None, 1)[1].lower()
+    word = message.command[1].lower()
 
-    if target in BANNED_LIST:
-        BANNED_LIST.remove(target)
-        await message.reply_text(f"🗑️ '{target}' removed from block list")
+    if word in BANNED_LIST:
+        BANNED_LIST.remove(word)
 
+    await message.reply_text(f"🗑️ '{word}' removed")
 
-# SHOW BANNED USERS
-@app_bot.on_message(filters.command("banned"))
-async def banned_users(client, message):
-    logs = "\n".join(BANNED_LOGS[-10:]) if BANNED_LOGS else "No banned users yet."
-    await message.reply_text(logs)
+# STATS
+@app_bot.on_message(filters.command("stats"))
+async def stats(client, message):
 
+    text = (
+        f"📊 **Safety Guard Stats**\n\n"
+        f"Total Bans: {TOTAL_BANS}\n"
+        f"Blocked Words: {len(BANNED_LIST)}"
+    )
 
-# AUTO GUARD
+    await message.reply_text(text)
+
+# SPAM LINK DELETE
+@app_bot.on_message(filters.group & filters.regex(r"(https?://|t.me/)"))
+async def delete_links(client, message):
+
+    try:
+        await message.delete()
+    except:
+        pass
+
+# AUTO NAME GUARD
 @app_bot.on_chat_member_updated()
 async def guard(client, update):
+
+    global TOTAL_BANS
 
     user = None
 
@@ -97,6 +136,7 @@ async def guard(client, update):
         user = update.new_chat_member.user
 
     if user:
+
         full_name = f"{user.first_name or ''} {user.last_name or ''}".lower()
         username = (user.username or "").lower()
 
@@ -105,7 +145,10 @@ async def guard(client, update):
             if word in full_name or word in username:
 
                 try:
+
                     await client.ban_chat_member(update.chat.id, user.id)
+
+                    TOTAL_BANS += 1
 
                     BANNED_LOGS.append(
                         f"❌ {user.first_name} banned (match: {word})"
@@ -116,16 +159,15 @@ async def guard(client, update):
 
                 break
 
-
 async def main():
 
     Thread(target=run_flask, daemon=True).start()
+
     print("🚀 Web server started")
 
     async with app_bot:
         print("✅ BOT IS LIVE")
         await asyncio.Future()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

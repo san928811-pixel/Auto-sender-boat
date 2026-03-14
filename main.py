@@ -20,10 +20,7 @@ def home(): return "Bot is Online and Guarding!"
 
 def run_flask():
     port = int(os.environ.get("PORT", 8080))
-    def run_flask():
-    port = int(os.environ.get("PORT", 8080))
     app_web.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
-
 # 1. START Command - Bot ki details dikhayega
 @app_bot.on_message(filters.command("start"))
 async def start(client, message):

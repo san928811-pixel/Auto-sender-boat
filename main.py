@@ -39,7 +39,7 @@ async def add_w(client, message):
 async def list_w(client, message):
     await message.reply_text(f"🚫 Blocked: {', '.join(BANNED_KEYWORDS)}")
 
-@app_bot.on_message(filters.chat_member_updated())
+@app_bot.on_chat_member_updated()
 async def auto_guard(client, update):
     if update.new_chat_member:
         user = update.new_chat_member.user

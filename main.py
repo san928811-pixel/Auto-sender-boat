@@ -1,5 +1,4 @@
 import os
-import asyncio
 import time
 from pyrogram import Client, filters
 from pyrogram.types import ChatMemberUpdated
@@ -16,8 +15,7 @@ bot = Client(
     "guard_bot",
     api_id=API_ID,
     api_hash=API_HASH,
-    bot_token=BOT_TOKEN,
-    in_memory=True
+    bot_token=BOT_TOKEN
 )
 
 app = Flask(__name__)
@@ -44,7 +42,8 @@ def is_admin(uid):
 async def start(client,message):
 
     text = (
-        "🛡 Advanced Guard Bot Active\n\n"
+        "🛡 **Advanced Guard Bot Active**\n\n"
+        "Commands:\n"
         "/add word\n"
         "/remove word\n"
         "/list\n"
@@ -186,18 +185,19 @@ async def guard(client,update:ChatMemberUpdated):
             await client.ban_chat_member(update.chat.id,user.id)
 
             BANNED_LOGS.append(
-                f"⚠ Raid detected banned {user.first_name}"
+                f"⚠ Raid banned {user.first_name}"
             )
 
         except:
             pass
 
-async def main():
+def main():
 
     Thread(target=run_web).start()
 
-    async with bot:
-        print("BOT IS LIVE")
-        await asyncio.Future()
+    print("BOT IS LIVE")
 
-asyncio.run(main())
+    bot.run()
+
+if __name__ == "__main__":
+    main()

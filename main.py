@@ -1,4 +1,5 @@
 import os
+import random
 import time
 from pyrogram import Client, filters
 from pyrogram.types import ChatMemberUpdated
@@ -12,7 +13,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 8611520265
 
 bot = Client(
-    "guard_bot",
+    "ultimate_guard_bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
@@ -22,35 +23,34 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Guard Bot Running"
+    return "Ultimate Guard Bot Running"
 
 def run_web():
     port = int(os.environ.get("PORT",8080))
     app.run(host="0.0.0.0",port=port)
 
-# DATA
 BANNED_WORDS = []
-BANNED_LOGS = []
+LOGS = []
+CAPTCHA = {}
 JOIN_LOG = []
 
-# ADMIN CHECK
 def is_admin(uid):
     return uid == ADMIN_ID
+
 
 # START
 @bot.on_message(filters.command("start"))
 async def start(client,message):
 
-    text = (
-        "🛡 **Advanced Guard Bot Active**\n\n"
-        "Commands:\n"
+    await message.reply_text(
+        "🛡 Ultimate Guard Bot Active\n\n"
         "/add word\n"
         "/remove word\n"
         "/list\n"
-        "/logs"
+        "/logs\n"
+        "/stats"
     )
 
-    await message.reply_text(text)
 
 # ADD WORD
 @bot.on_message(filters.command("add"))
@@ -67,7 +67,8 @@ async def add_word(client,message):
     if word not in BANNED_WORDS:
         BANNED_WORDS.append(word)
 
-    await message.reply(f"✅ Added {word}")
+    await message.reply(f"🚫 Blocked keyword: {word}")
+
 
 # REMOVE WORD
 @bot.on_message(filters.command("remove"))
@@ -86,25 +87,41 @@ async def remove_word(client,message):
 
     await message.reply("Removed")
 
-# LIST
+
+# LIST WORDS
 @bot.on_message(filters.command("list"))
 async def list_words(client,message):
 
     if not BANNED_WORDS:
-        return await message.reply("No banned words")
+        return await message.reply("No blocked words")
 
     await message.reply("\n".join(BANNED_WORDS))
+
+
+# STATS
+@bot.on_message(filters.command("stats"))
+async def stats(client,message):
+
+    text = (
+        f"📊 Guard Bot Stats\n\n"
+        f"Blocked Words: {len(BANNED_WORDS)}\n"
+        f"Banned Users: {len(LOGS)}"
+    )
+
+    await message.reply(text)
+
 
 # LOGS
 @bot.on_message(filters.command("logs"))
 async def logs(client,message):
 
-    if not BANNED_LOGS:
+    if not LOGS:
         return await message.reply("No logs")
 
-    await message.reply("\n".join(BANNED_LOGS[-10:]))
+    await message.reply("\n".join(LOGS[-10:]))
 
-# SPAM LINK DELETE
+
+# DELETE SPAM LINKS
 @bot.on_message(filters.group & filters.regex(r"(https?://|t.me/)"))
 async def delete_links(client,message):
 
@@ -113,7 +130,30 @@ async def delete_links(client,message):
     except:
         pass
 
-# JOIN GUARD
+
+# CHANNEL JOIN REQUEST FILTER
+@bot.on_chat_join_request()
+async def join_request(client, request):
+
+    user = request.from_user
+
+    name = f"{user.first_name or ''} {(user.last_name or '')}".lower()
+    username = (user.username or "").lower()
+
+    if user.is_bot:
+        await request.decline()
+        return
+
+    for word in BANNED_WORDS:
+        if word in name or word in username:
+            await request.decline()
+            LOGS.append(f"Join request rejected {user.first_name}")
+            return
+
+    await request.approve()
+
+
+# GROUP JOIN GUARD
 @bot.on_chat_member_updated()
 async def guard(client,update:ChatMemberUpdated):
 
@@ -125,79 +165,68 @@ async def guard(client,update:ChatMemberUpdated):
     name = f"{user.first_name or ''} {(user.last_name or '')}".lower()
     username = (user.username or "").lower()
 
-    # BOT GUARD
+    # BOT BAN
     if user.is_bot:
-
-        try:
-            await client.ban_chat_member(update.chat.id,user.id)
-            BANNED_LOGS.append(f"🤖 Bot banned {user.first_name}")
-        except:
-            pass
-
+        await client.ban_chat_member(update.chat.id,user.id)
+        LOGS.append(f"Bot banned {user.first_name}")
         return
 
-    # FAKE ACCOUNT DETECTION
-    suspicious = ["free","earn","crypto","hack","spam"]
-
-    for word in suspicious:
-
-        if word in name or word in username:
-
-            try:
-                await client.ban_chat_member(update.chat.id,user.id)
-
-                BANNED_LOGS.append(
-                    f"🚫 Fake banned {user.first_name}"
-                )
-
-            except:
-                pass
-
-            return
-
-    # KEYWORD GUARD
+    # KEYWORD BLOCK
     for word in BANNED_WORDS:
-
         if word in name or word in username:
-
-            try:
-                await client.ban_chat_member(update.chat.id,user.id)
-
-                BANNED_LOGS.append(
-                    f"🚫 {user.first_name} banned ({word})"
-                )
-
-            except:
-                pass
-
+            await client.ban_chat_member(update.chat.id,user.id)
+            LOGS.append(f"{user.first_name} banned ({word})")
             return
 
-    # RAID PROTECTION
+    # RAID DETECTION
     now = time.time()
 
     JOIN_LOG.append(now)
 
     JOIN_LOG[:] = [t for t in JOIN_LOG if now - t < 10]
 
-    if len(JOIN_LOG) > 5:
+    if len(JOIN_LOG) > 60:
+        await client.send_message(update.chat.id,"🚨 Raid detected")
+        await client.ban_chat_member(update.chat.id,user.id)
+        return
 
-        try:
-            await client.ban_chat_member(update.chat.id,user.id)
+    # CAPTCHA
+    a = random.randint(1,9)
+    b = random.randint(1,9)
 
-            BANNED_LOGS.append(
-                f"⚠ Raid banned {user.first_name}"
-            )
+    CAPTCHA[user.id] = a + b
 
-        except:
-            pass
+    await client.send_message(
+        update.chat.id,
+        f"{user.mention} solve captcha: {a}+{b}=?"
+    )
+
+
+# CAPTCHA VERIFY
+@bot.on_message(filters.group)
+async def verify(client,message):
+
+    if message.from_user.id in CAPTCHA:
+
+        if message.text == str(CAPTCHA[message.from_user.id]):
+
+            del CAPTCHA[message.from_user.id]
+
+            await message.reply("✅ Verified")
+
+        else:
+
+            await message.reply("❌ Wrong captcha")
+
 
 def main():
 
     Thread(target=run_web).start()
 
-    print("BOT IS LIVE")
+    print("ULTIMATE GUARD BOT LIVE")
 
     bot.run()
+
 
 if __name__ == "__main__":
     main()
